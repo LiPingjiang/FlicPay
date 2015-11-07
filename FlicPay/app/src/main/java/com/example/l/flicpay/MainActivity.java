@@ -2,6 +2,7 @@ package com.example.l.flicpay;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -16,8 +17,14 @@ import android.os.Handler;
 import android.widget.ImageView;
 import android.widget.TextSwitcher;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
 
 import io.flic.lib.FlicButton;
 import io.flic.lib.FlicButtonCallback;
@@ -29,46 +36,71 @@ import io.flic.lib.FlicManagerInitializedCallback;
 public class MainActivity extends Activity {
 
     private int area;
+    private int area_submit;
     private int[] password = new int[10];
+    private int[] userPattern = new int[5];
     private FlicManager manager;
     private ImageView background;
     private View pass_nums;
     private Button btn_start;
+    private Button btn_submit;
     private int counter;
     private TextSwitcher txt_counter;
     private List<FlicButton> buttons;
     private HashMap<String,FlicButton> buttons_map;
+    private HashMap<String,Integer> buttons_score;
+    private HashMap<String,Integer> buttons_rssi;
+    private ImageView circle;
+    private String binaryPassword;
+    private String connectedButton; // mac address of the connected button
 
     private boolean recording;
+    private boolean pairing;
     String TAG ="flicpay";
     private FlicButtonCallback buttonCallback = new FlicButtonCallback() {
         @Override
         public void onButtonUpOrDown(FlicButton button, boolean wasQueued, int timeDiff, boolean isUp, boolean isDown) {
             final String text = button + " was " + (isDown ? "pressed" : "released");
             Log.d(TAG, text);
-            if(recording)
+            if(recording && button.getButtonId().equals(connectedButton)) {
                 password[area]++;
+            }
+            Log.d(TAG,"pairing: "+pairing+" ,"+binaryPassword.charAt(area_submit));
+            if(pairing && binaryPassword.charAt(area_submit)=='1')
+            {
+               //(Integer)buttons_score.get(button.getButtonId());
+                Log.d(TAG,"plus:" + button.getButtonId());
+                buttons_score.put(button.getButtonId(), buttons_score.get(button.getButtonId())+1);
+            }
+
+        }
+
+        @Override
+        public void onReadRemoteRSSI(FlicButton button, int rssi, int status) {
+            super.onReadRemoteRSSI(button, rssi, status);
+
+            buttons_rssi.put(button.getButtonId(),rssi);
         }
     };
-    private void stuffToBeExecuted(){
-
-    }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         recording = false;
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_pair);
 
-        btn_start = (Button)findViewById(R.id.button);
-        btn_start.setOnClickListener(new View.OnClickListener() {
+        /**/
+        btn_submit = (Button)findViewById(R.id.button_submit);
+        btn_submit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                btn_start.setEnabled(false);
-                startAnimation();
+                btn_submit.setVisibility(View.GONE);//hide
+                startPairing();
             }
         });
+        circle = (ImageView) findViewById(R.id.circle);
+        circle.setVisibility(View.GONE);    //disappear
 
         FlicManager.setAppCredentials("[appId]", "[appSecret]", "FlicPay");
 
@@ -77,8 +109,13 @@ public class MainActivity extends Activity {
             public void onInitialized(FlicManager manager) {
                 MainActivity.this.manager = manager;
                 buttons = manager.getKnownButtons();
+                buttons_map = new HashMap<String, FlicButton>();
+                buttons_score = new HashMap<String, Integer>();
+                buttons_rssi = new HashMap<String, Integer>();
                 for (FlicButton button : buttons) {
                     buttons_map.put(button.getButtonId(), button);
+                    buttons_score.put(button.getButtonId(), 0);
+                    buttons_rssi.put(button.getButtonId(), 0);
                     setButtonCallback(button);
                 }
 //                manager.initiateGrabButton(MainActivity.this);// this refers to the current Activity.
@@ -86,14 +123,9 @@ public class MainActivity extends Activity {
         });
 
 
+/*
 
-        counter = 3;
-        background = (ImageView) findViewById(R.id.img_background);
-        pass_nums = findViewById(R.id.pass_nums);
-        txt_counter = (TextSwitcher) findViewById(R.id.counter);
-        txt_counter.setInAnimation(this, R.anim.fade_in);
-        txt_counter.setOutAnimation(this, R.anim.fade_out);
-
+*/
 
     }
 
@@ -133,7 +165,7 @@ public class MainActivity extends Activity {
     private void setButtonCallback(FlicButton button) {
         button.removeAllFlicButtonCallbacks();
         button.addFlicButtonCallback(buttonCallback);
-        button.setFlicButtonCallbackFlags(FlicButtonCallbackFlags.UP_OR_DOWN);
+        button.setFlicButtonCallbackFlags(FlicButtonCallbackFlags.UP_OR_DOWN);;
     }
 
 
@@ -142,7 +174,105 @@ public class MainActivity extends Activity {
         FlicManager.destroyInstance();
         super.onDestroy();
     }
+    private void startPairing(){
 
+        pairing = true;
+        //generate random binary code, 5 bits, 31 combinations
+        Random r = new Random();
+        binaryPassword = Integer.toBinaryString(r.nextInt(32)+64); //char c = s.charAt(0);
+
+        circle.setVisibility(View.VISIBLE);
+        final Drawable green_circle = getResources().getDrawable(R.drawable.green_circle);
+        final Drawable red_circle = getResources().getDrawable(R.drawable.red_circle);
+        circle.setImageDrawable(red_circle);
+
+        final Handler handler_circle = new Handler();
+        area_submit=-1;
+        for(int i = 0; i<userPattern.length; i++){
+            userPattern[i]=0;
+        }
+
+        //clean the hashmap score
+        Map map = buttons_score;
+        Iterator iter = map.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            entry.setValue( 0 );
+        }
+
+        final Runnable c = new Runnable() {
+            public void run() {
+                area_submit++;
+                if(area_submit<5){
+                    if( binaryPassword.charAt(area_submit+1) == '0')
+                        circle.setImageDrawable(red_circle);
+                    else
+                        circle.setImageDrawable(green_circle);
+
+                    handler_circle.postDelayed(this, 1000);}
+                else{
+                    //finnish pairing, begin to check
+                    circle.setVisibility(View.GONE);
+
+                    //choose the highest score
+                    int highestScore=1;
+                    ArrayList<String> highestList = new ArrayList<String>();
+
+                    Map<String, FlicButton> map = buttons_map;
+                    Iterator<Map.Entry<String, FlicButton>> entries = map.entrySet().iterator();
+                    while (entries.hasNext()) {
+                        Map.Entry<String, FlicButton> entry = entries.next();
+                        if(highestScore == buttons_score.get(entry.getKey()) ){
+                            highestList.add(entry.getKey());
+                        }else if(highestScore < buttons_score.get(entry.getKey()) ){
+                            highestList.clear();
+                            highestList.add(entry.getKey());
+                        }
+                    }
+
+                    if (highestList.size()<=0){
+                        btn_submit.setVisibility(View.VISIBLE);
+
+                    }else {
+                        if(highestList.size()==1){
+                            Log.d(TAG,"choosed button mac:"+highestList.get(0));
+                            connectedButton=highestList.get(0);
+                        }else{// more than 1, choose the best bluetooth signal one
+                            double highestSignal=0;
+                            for (int i=0;i< highestList.size();i++){
+                                if(buttons_rssi.get(highestList.get(i)) > highestSignal ){
+                                    connectedButton=highestList.get(i);
+                                }
+                            }
+                        }
+                        //reset the layout
+                        setContentView(R.layout.activity_main);
+
+                        btn_start = (Button)findViewById(R.id.button);
+                        btn_start.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                btn_start.setEnabled(false);
+                                startAnimation();
+                            }
+                        });
+
+                        counter = 3;
+                        background = (ImageView) findViewById(R.id.img_background);
+                        pass_nums = findViewById(R.id.pass_nums);
+                        txt_counter = (TextSwitcher) findViewById(R.id.counter);
+                        txt_counter.setInAnimation(MainActivity.this, R.anim.fade_in);
+                        txt_counter.setOutAnimation(MainActivity.this, R.anim.fade_out);
+                    }
+                    pairing = false;
+                }
+
+            }
+        };
+
+        handler_circle.postDelayed(c, 1000);
+
+    }
     private void startAnimation()
     {
 

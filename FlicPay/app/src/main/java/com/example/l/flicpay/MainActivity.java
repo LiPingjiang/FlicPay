@@ -44,7 +44,8 @@ public class MainActivity extends Activity {
 
     private int area;
     private int area_submit;
-    private int[] password = new int[10];
+    private int[] down_password = new int[10];
+    private int[] up_password = new int[10];
     private int[] userPattern = new int[5];
     private FlicManager manager;
     private ImageView background;
@@ -70,7 +71,14 @@ public class MainActivity extends Activity {
             final String text = button + " was " + (isDown ? "pressed" : "released");
             Log.d(TAG, text);
             if(recording && button.getButtonId().equals(connectedButton)) {
-                password[area]++;
+                if(isDown)
+                {
+                    down_password[area]++;
+                }
+                if(isUp)
+                {
+                    up_password[area]++;
+                }
             }
             Log.d(TAG,"pairing: "+pairing+" ,"+binaryPassword.charAt(area_submit));
             if(pairing && binaryPassword.charAt(area_submit)=='1')
@@ -326,8 +334,9 @@ public class MainActivity extends Activity {
                     Log.d(TAG, "Click input pin button, start handler");
 
                     area = -1;
-                    for(int i = 0; i<password.length; i++){
-                        password[i]=0;
+                    for(int i = 0; i<up_password.length; i++){
+                        up_password[i]=0;
+                        down_password[i]=0;
                     }
 
                     final Handler handler_pass = new Handler();
@@ -341,22 +350,24 @@ public class MainActivity extends Activity {
                                 handler_pass.postDelayed(this, 1000);}
                             else{
                                 recording = false;
-                                Log.d(TAG, "password:"
-                                        + "[0]" + password[0] + ","
-                                        + "[1]" + password[1] + ","
-                                        + "[2]" + password[2] + ","
-                                        + "[3]" + password[3] + ","
-                                        + "[4]" + password[4] + ","
-                                        + "[5]" + password[5] + ","
-                                        + "[6]" + password[6] + ","
-                                        + "[7]" + password[7] + ","
-                                        + "[8]" + password[8] + ","
-                                        + "[9]" + password[9] + ".");
-                                String complete_password = password[0]+""+password[1]+""+password[2]+""+
-                                        password[3]+""+password[4]+""+password[5]+""+
-                                        password[6]+""+password[7]+""+password[8]+""+
-                                        password[9];
-                                verify(complete_password);
+//                                Log.d(TAG, "password:"
+//                                        + "[0]" + password[0] + ","
+//                                        + "[1]" + password[1] + ","
+//                                        + "[2]" + password[2] + ","
+//                                        + "[3]" + password[3] + ","
+//                                        + "[4]" + password[4] + ","
+//                                        + "[5]" + password[5] + ","
+//                                        + "[6]" + password[6] + ","
+//                                        + "[7]" + password[7] + ","
+//                                        + "[8]" + password[8] + ","
+//                                        + "[9]" + password[9] + ".");
+//                                String complete_password = password[0]+""+password[1]+""+password[2]+""+
+//                                        password[3]+""+password[4]+""+password[5]+""+
+//                                        password[6]+""+password[7]+""+password[8]+""+
+//                                        password[9];
+
+                                verify(calculatePassword());
+
                             }
 
                         }
@@ -379,6 +390,18 @@ public class MainActivity extends Activity {
 
         handler.post(runnable);
 
+    }
+
+    private String calculatePassword()
+    {
+        String thisPassword = "";
+
+        for(int i = 0; i< 10; i++)
+        {
+            thisPassword = thisPassword + down_password[i]+up_password[i]*10;
+            thisPassword+= "-";
+        }
+        return thisPassword.substring(0, thisPassword.length()-1);
     }
 
     public class ResizeAnimation extends Animation {

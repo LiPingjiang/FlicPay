@@ -16,6 +16,12 @@ import android.widget.Button;
 import android.os.Handler;
 import android.widget.ImageView;
 import android.widget.TextSwitcher;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -26,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
+import cz.msebera.android.httpclient.Header;
 import io.flic.lib.FlicButton;
 import io.flic.lib.FlicButtonCallback;
 import io.flic.lib.FlicButtonCallbackFlags;
@@ -53,7 +60,7 @@ public class MainActivity extends Activity {
     private ImageView circle;
     private String binaryPassword;
     private String connectedButton; // mac address of the connected button
-
+    private double price;
     private boolean recording;
     private boolean pairing;
     String TAG ="flicpay";
@@ -89,7 +96,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         recording = false;
         setContentView(R.layout.activity_pair);
-
+        Random random = new Random();
+        price = ((double)random.nextInt(9999))/100;
+        ((TextView) findViewById(R.id.txt_price)).setText("Total: "+price+"\u20AC");
         /**/
         btn_submit = (Button)findViewById(R.id.button_submit);
         btn_submit.setOnClickListener(new View.OnClickListener() {
@@ -247,7 +256,7 @@ public class MainActivity extends Activity {
                         }
                         //reset the layout
                         setContentView(R.layout.activity_main);
-
+                        ((TextView) findViewById(R.id.txt_price)).setText("Total: " + price + "\u20AC");
                         btn_start = (Button)findViewById(R.id.button);
                         btn_start.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -332,17 +341,22 @@ public class MainActivity extends Activity {
                                 handler_pass.postDelayed(this, 1000);}
                             else{
                                 recording = false;
-                                Log.d(TAG,"password:"
-                                        +"[0]"+ password[0]+","
-                                        +"[1]"+ password[1]+","
-                                        +"[2]"+ password[2]+","
-                                        +"[3]"+ password[3]+","
-                                        +"[4]"+ password[4]+","
-                                        +"[5]"+ password[5]+","
-                                        +"[6]"+ password[6]+","
-                                        +"[7]"+ password[7]+","
-                                        +"[8]"+ password[8]+","
-                                        +"[9]"+ password[9]+".");
+                                Log.d(TAG, "password:"
+                                        + "[0]" + password[0] + ","
+                                        + "[1]" + password[1] + ","
+                                        + "[2]" + password[2] + ","
+                                        + "[3]" + password[3] + ","
+                                        + "[4]" + password[4] + ","
+                                        + "[5]" + password[5] + ","
+                                        + "[6]" + password[6] + ","
+                                        + "[7]" + password[7] + ","
+                                        + "[8]" + password[8] + ","
+                                        + "[9]" + password[9] + ".");
+                                String complete_password = password[0]+""+password[1]+""+password[2]+""+
+                                        password[3]+""+password[4]+""+password[5]+""+
+                                        password[6]+""+password[7]+""+password[8]+""+
+                                        password[9];
+                                verify(complete_password);
                             }
 
                         }
@@ -394,5 +408,27 @@ public class MainActivity extends Activity {
         public boolean willChangeBounds() {
             return true;
         }
+    }
+
+    private void verify(String complete_password)
+    {
+        AsyncHttpClient client = new AsyncHttpClient();
+        RequestParams params = new RequestParams();
+        params.put("flic_id", connectedButton);
+        params.put("password", complete_password);
+        params.put("amount", price);
+        client.get("http://pan0166.panoulu.net/flic_pay/pay.php", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                Toast.makeText(getApplicationContext(), "Transaction succeeded",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                Log.d("values",headers.toString());
+                Log.d("values",new String(responseBody));
+                Toast.makeText(getApplicationContext(), "Transaction failed",Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

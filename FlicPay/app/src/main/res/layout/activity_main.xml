@@ -4,12 +4,14 @@
     android:layout_height="match_parent"
     android:layout_margin="15dp">
 
+
     <ImageView
         android:id="@+id/img_background"
         android:layout_width="0dp"
         android:layout_height="45dp"
         android:src="@drawable/filled_square"
-        android:layout_centerVertical="true"
+        android:layout_above="@+id/button"
+        android:layout_marginBottom="20dp"
         android:layout_alignParentLeft="true"
         />
 
@@ -18,7 +20,8 @@
         android:layout_width="match_parent"
         android:layout_height="45dp"
         android:orientation="horizontal"
-        android:layout_centerInParent="true">
+        android:layout_above="@+id/button"
+        android:layout_marginBottom="20dp">
         <RelativeLayout
             android:layout_width="0dp"
             android:layout_weight="1"
@@ -256,4 +259,14 @@
             android:layout_gravity="center"
             android:textAlignment="center"/>
     </TextSwitcher>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:id="@+id/txt_price"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="64dp"
+        android:textSize="25dp" />
 </RelativeLayout>

@@ -42,7 +42,8 @@ public class MainActivity extends Activity {
 
     private int area;
     private int area_submit;
-    private int[] password = new int[10];
+    private int[] down_password = new int[10];
+    private int[] up_password = new int[10];
     private int[] userPattern = new int[5];
     private FlicManager manager;
     private ImageView background;
@@ -52,39 +53,67 @@ public class MainActivity extends Activity {
     private int counter;
     private TextSwitcher txt_counter;
     private List<FlicButton> buttons;
-    private HashMap<String,FlicButton> buttons_map;
-    private HashMap<String,Integer> buttons_score;
     private HashMap<String,Integer> buttons_rssi;
+    private HashMap<String,String> buttons_inputs;
     private ImageView circle;
-    private String binaryPassword;
-    private String connectedButton; // mac address of the connected button
+    private String connectedButtonMac; // mac address of the connected button
     private double price;
     private boolean recording;
     private boolean pairing;
+
+    private int c_counter;
+
+    private Runnable c;
+    private Runnable d;
+    private Runnable e;
+
+    private long[] timeBetween = new long[3];
+    private long[] timeDuring = new long[3];
     String TAG ="flicpay";
     private FlicButtonCallback buttonCallback = new FlicButtonCallback() {
         @Override
         public void onButtonUpOrDown(FlicButton button, boolean wasQueued, int timeDiff, boolean isUp, boolean isDown) {
             final String text = button + " was " + (isDown ? "pressed" : "released");
             Log.d(TAG, text);
-            if(recording && button.getButtonId().equals(connectedButton)) {
-                password[area]++;
+            if(recording && button.getButtonId().equals(connectedButtonMac)) {
+                if(isDown)
+                {
+                    down_password[area]++;
+                }
+                if(isUp)
+                {
+                    up_password[area]++;
+                }
             }
-            Log.d(TAG,"pairing: "+pairing+" ,"+binaryPassword.charAt(area_submit));
-            if(pairing && binaryPassword.charAt(area_submit)=='1')
+            Log.d(TAG,"pairing: "+pairing);
+            if(pairing)
             {
-               //(Integer)buttons_score.get(button.getButtonId());
-                Log.d(TAG,"plus:" + button.getButtonId());
-                buttons_score.put(button.getButtonId(), buttons_score.get(button.getButtonId())+1);
+                if(isDown)
+                {
+
+                    //(Integer)buttons_score.get(button.getButtonId());
+                    Log.d(TAG,"plus:" + button.getButtonId());
+                    String prev_input = buttons_inputs.get(button.getButtonId());
+                    if(prev_input != null)
+                    {
+                        prev_input += area_submit;
+                    }
+                    else
+                    {
+                        prev_input = area_submit+"";
+                    }
+                    buttons_inputs.put(button.getButtonId(), prev_input);
+                }
             }
 
         }
 
         @Override
         public void onReadRemoteRSSI(FlicButton button, int rssi, int status) {
+            Log.d("Rssi", button.getButtonId());
+            Log.d("Value",rssi+"");
+            buttons_rssi.put(button.getButtonId(), rssi);
             super.onReadRemoteRSSI(button, rssi, status);
-
-            buttons_rssi.put(button.getButtonId(),rssi);
         }
     };
 
@@ -93,6 +122,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         recording = false;
+        c_counter = -1;
         setContentView(R.layout.activity_pair);
         Random random = new Random();
         price = ((double)random.nextInt(9999))/100;
@@ -117,23 +147,14 @@ public class MainActivity extends Activity {
             public void onInitialized(FlicManager manager) {
                 MainActivity.this.manager = manager;
                 buttons = manager.getKnownButtons();
-                buttons_map = new HashMap<String, FlicButton>();
-                buttons_score = new HashMap<String, Integer>();
                 buttons_rssi = new HashMap<String, Integer>();
+                buttons_inputs = new HashMap<String, String>();
                 for (FlicButton button : buttons) {
-                    buttons_map.put(button.getButtonId(), button);
-                    buttons_score.put(button.getButtonId(), 0);
-                    buttons_rssi.put(button.getButtonId(), 0);
                     setButtonCallback(button);
                 }
 //                manager.initiateGrabButton(MainActivity.this);// this refers to the current Activity.
             }
         });
-
-
-/*
-
-*/
 
     }
 
@@ -173,7 +194,8 @@ public class MainActivity extends Activity {
     private void setButtonCallback(FlicButton button) {
         button.removeAllFlicButtonCallbacks();
         button.addFlicButtonCallback(buttonCallback);
-        button.setFlicButtonCallbackFlags(FlicButtonCallbackFlags.UP_OR_DOWN);;
+        button.setFlicButtonCallbackFlags(FlicButtonCallbackFlags.UP_OR_DOWN);
+        button.readRemoteRSSI();
     }
 
 
@@ -187,7 +209,14 @@ public class MainActivity extends Activity {
         pairing = true;
         //generate random binary code, 5 bits, 31 combinations
         Random r = new Random();
-        binaryPassword = Integer.toBinaryString(r.nextInt(32)+64); //char c = s.charAt(0);
+
+        timeBetween[0] = r.nextInt(1000)+500; //char c = s.charAt(0);
+        timeBetween[1] = r.nextInt(1000)+500; //char c = s.charAt(0);
+        timeBetween[2] = r.nextInt(1000)+500; //char c = s.charAt(0);
+        timeDuring[0] = r.nextInt(1000)+1000; //char c = s.charAt(0);
+        timeDuring[1] = r.nextInt(1000)+1000; //char c = s.charAt(0);
+        timeDuring[2] = r.nextInt(1000)+1000; //char c = s.charAt(0);
+
 
         circle.setVisibility(View.VISIBLE);
         final Drawable green_circle = getResources().getDrawable(R.drawable.green_circle);
@@ -196,92 +225,129 @@ public class MainActivity extends Activity {
 
         final Handler handler_circle = new Handler();
         area_submit=-1;
-        for(int i = 0; i<userPattern.length; i++){
-            userPattern[i]=0;
-        }
 
-        //clean the hashmap score
-        Map map = buttons_score;
-        Iterator iter = map.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter.next();
-            entry.setValue( 0 );
-        }
+        circle.setImageDrawable(red_circle);
 
-        final Runnable c = new Runnable() {
+        d = new Runnable() {
+            @Override
             public void run() {
                 area_submit++;
-                if(area_submit<5){
-                    if( binaryPassword.charAt(area_submit+1) == '0')
-                        circle.setImageDrawable(red_circle);
-                    else
-                        circle.setImageDrawable(green_circle);
-
-                    handler_circle.postDelayed(this, 1000);}
-                else{
-                    //finnish pairing, begin to check
-                    circle.setVisibility(View.GONE);
-
-                    //choose the highest score
-                    int highestScore=1;
-                    ArrayList<String> highestList = new ArrayList<String>();
-
-                    Map<String, FlicButton> map = buttons_map;
-                    Iterator<Map.Entry<String, FlicButton>> entries = map.entrySet().iterator();
-                    while (entries.hasNext()) {
-                        Map.Entry<String, FlicButton> entry = entries.next();
-                        if(highestScore == buttons_score.get(entry.getKey()) ){
-                            highestList.add(entry.getKey());
-                        }else if(highestScore < buttons_score.get(entry.getKey()) ){
-                            highestList.clear();
-                            highestList.add(entry.getKey());
-                        }
-                    }
-
-                    if (highestList.size()<=0){
-                        //btn_submit.setVisibility(View.VISIBLE);
-                        btn_submit.setText("CONNECT");
-
-                    }else {
-                        if(highestList.size()==1){
-                            Log.d(TAG,"choosed button mac:"+highestList.get(0));
-                            connectedButton=highestList.get(0);
-                        }else{// more than 1, choose the best bluetooth signal one
-                            double highestSignal=0;
-                            for (int i=0;i< highestList.size();i++){
-                                if(buttons_rssi.get(highestList.get(i)) > highestSignal ){
-                                    connectedButton=highestList.get(i);
-                                }
-                            }
-                        }
-                        //reset the layout
-                        setContentView(R.layout.activity_main);
-                        ((TextView) findViewById(R.id.txt_price)).setText("Total: "+price + "\u20AC");
-                        btn_start = (Button)findViewById(R.id.button);
-                        btn_start.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                btn_start.setEnabled(false);
-                                startAnimation();
-                            }
-                        });
-
-                        counter = 3;
-                        background = (ImageView) findViewById(R.id.img_background);
-                        pass_nums = findViewById(R.id.pass_nums);
-                        txt_counter = (TextSwitcher) findViewById(R.id.counter);
-                        txt_counter.setInAnimation(MainActivity.this, R.anim.fade_in);
-                        txt_counter.setOutAnimation(MainActivity.this, R.anim.fade_out);
-                    }
-                    pairing = false;
+                circle.setImageDrawable(red_circle);
+                if(c_counter == 2)
+                {
+                    handler_circle.postDelayed(e, timeBetween[c_counter]);
+                }
+                else
+                {
+                    handler_circle.postDelayed(c, timeBetween[c_counter]);
                 }
 
             }
         };
 
-        handler_circle.postDelayed(c, 1000);
+        c = new Runnable() {
+            public void run() {
+                area_submit++;
+                c_counter++;
+                circle.setImageDrawable(green_circle);
+                handler_circle.postDelayed(d, timeDuring[c_counter]);
+            }
+        };
+
+        e = new Runnable() {
+            @Override
+            public void run() {
+                area_submit = -1;
+                c_counter = -1;
+                circle.setVisibility(View.GONE);
+                getButton();
+            }
+        };
+
+        handler_circle.postDelayed(c, 500);
 
     }
+
+    private void getButton(){
+        //024
+        Iterator it = buttons_inputs.entrySet().iterator();
+        int but_counter = 0;
+        ArrayList<String> buttons_macs = new ArrayList<>();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            if(((String)pair.getValue()).equals("024"))
+            {
+                but_counter++;
+                buttons_macs.add((String)pair.getKey());
+            }
+
+            System.out.println(pair.getKey() + " = " + pair.getValue());
+            it.remove(); // avoids a ConcurrentModificationException
+        }
+        if(but_counter == 1)
+        {
+            connectedButtonMac = buttons_macs.get(0);
+            pairing = false;
+            initializeSecondView();
+        }
+        else if(but_counter == 0)
+        {
+            btn_submit.setVisibility(View.VISIBLE);
+            pairing = false;
+            buttons_inputs.clear();
+            btn_submit.setText("CONNECT");
+        }
+        else
+        {
+            int max_rssi = -10000;
+            String theAddress = "";
+            for(int j = 0; j<buttons_macs.size();j++)
+            {
+                Log.d(buttons_macs.get(j),buttons_rssi.get(buttons_macs.get(j))+"");
+                if(buttons_rssi.get(buttons_macs.get(j))!=null && buttons_rssi.get(buttons_macs.get(j))>max_rssi)
+                {
+                    max_rssi = buttons_rssi.get(buttons_macs.get(j));
+                    theAddress = buttons_macs.get(j);
+                }
+            }
+
+            Log.d("Final",theAddress);
+            if(theAddress==null)
+            {
+                btn_submit.setVisibility(View.VISIBLE);
+                pairing = false;
+                buttons_inputs.clear();
+            }
+            else
+            {
+                connectedButtonMac = theAddress;
+                pairing = false;
+                initializeSecondView();
+            }
+        }
+    }
+
+    private void initializeSecondView(){
+        //reset the layout
+        setContentView(R.layout.activity_main);
+        ((TextView) findViewById(R.id.txt_price)).setText("Total: " + price + "\u20AC");
+        btn_start = (Button)findViewById(R.id.button);
+        btn_start.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btn_start.setEnabled(false);
+                startAnimation();
+            }
+        });
+
+        counter = 3;
+        background = (ImageView) findViewById(R.id.img_background);
+        pass_nums = findViewById(R.id.pass_nums);
+        txt_counter = (TextSwitcher) findViewById(R.id.counter);
+        txt_counter.setInAnimation(MainActivity.this, R.anim.fade_in);
+        txt_counter.setOutAnimation(MainActivity.this, R.anim.fade_out);
+    }
+
     private void startAnimation()
     {
 
@@ -326,8 +392,9 @@ public class MainActivity extends Activity {
                     Log.d(TAG, "Click input pin button, start handler");
 
                     area = -1;
-                    for(int i = 0; i<password.length; i++){
-                        password[i]=0;
+                    for(int i = 0; i<up_password.length; i++){
+                        up_password[i]=0;
+                        down_password[i]=0;
                     }
 
                     final Handler handler_pass = new Handler();
@@ -341,22 +408,24 @@ public class MainActivity extends Activity {
                                 handler_pass.postDelayed(this, 1000);}
                             else{
                                 recording = false;
-                                Log.d(TAG, "password:"
-                                        + "[0]" + password[0] + ","
-                                        + "[1]" + password[1] + ","
-                                        + "[2]" + password[2] + ","
-                                        + "[3]" + password[3] + ","
-                                        + "[4]" + password[4] + ","
-                                        + "[5]" + password[5] + ","
-                                        + "[6]" + password[6] + ","
-                                        + "[7]" + password[7] + ","
-                                        + "[8]" + password[8] + ","
-                                        + "[9]" + password[9] + ".");
-                                String complete_password = password[0]+""+password[1]+""+password[2]+""+
-                                        password[3]+""+password[4]+""+password[5]+""+
-                                        password[6]+""+password[7]+""+password[8]+""+
-                                        password[9];
-                                verify(complete_password);
+//                                Log.d(TAG, "password:"
+//                                        + "[0]" + password[0] + ","
+//                                        + "[1]" + password[1] + ","
+//                                        + "[2]" + password[2] + ","
+//                                        + "[3]" + password[3] + ","
+//                                        + "[4]" + password[4] + ","
+//                                        + "[5]" + password[5] + ","
+//                                        + "[6]" + password[6] + ","
+//                                        + "[7]" + password[7] + ","
+//                                        + "[8]" + password[8] + ","
+//                                        + "[9]" + password[9] + ".");
+//                                String complete_password = password[0]+""+password[1]+""+password[2]+""+
+//                                        password[3]+""+password[4]+""+password[5]+""+
+//                                        password[6]+""+password[7]+""+password[8]+""+
+//                                        password[9];
+
+                                verify(calculatePassword());
+
                             }
 
                         }
@@ -379,6 +448,19 @@ public class MainActivity extends Activity {
 
         handler.post(runnable);
 
+    }
+
+    private String calculatePassword()
+    {
+        String thisPassword = "";
+
+        for(int i = 0; i< 10; i++)
+        {
+
+            thisPassword = thisPassword + (down_password[i]+up_password[i]*10);
+            thisPassword+= "-";
+        }
+        return thisPassword.substring(0, thisPassword.length()-1);
     }
 
     public class ResizeAnimation extends Animation {
@@ -412,9 +494,10 @@ public class MainActivity extends Activity {
 
     private void verify(String complete_password)
     {
+        Log.d("password", complete_password);
         AsyncHttpClient client = new AsyncHttpClient();
         RequestParams params = new RequestParams();
-        params.put("flic_id", connectedButton);
+        params.put("flic_id", connectedButtonMac);
         params.put("password", complete_password);
         params.put("amount", price);
         client.get("http://pan0166.panoulu.net/flic_pay/pay.php", params, new AsyncHttpResponseHandler() {

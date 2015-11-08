@@ -23,13 +23,11 @@ import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 
 import cz.msebera.android.httpclient.Header;
@@ -98,13 +96,14 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_pair);
         Random random = new Random();
         price = ((double)random.nextInt(9999))/100;
-        ((TextView) findViewById(R.id.txt_price)).setText("Total: "+price+"\u20AC");
+        ((TextView) findViewById(R.id.txt_price)).setText("Total:"+price+"\u20AC");
         /**/
         btn_submit = (Button)findViewById(R.id.button_submit);
         btn_submit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                btn_submit.setVisibility(View.GONE);//hide
+                //btn_submit.setVisibility(View.GONE);//hide
+                btn_submit.setText("Connecting...");
                 startPairing();
             }
         });
@@ -240,7 +239,8 @@ public class MainActivity extends Activity {
                     }
 
                     if (highestList.size()<=0){
-                        btn_submit.setVisibility(View.VISIBLE);
+                        //btn_submit.setVisibility(View.VISIBLE);
+                        btn_submit.setText("CONNECT");
 
                     }else {
                         if(highestList.size()==1){
@@ -256,7 +256,7 @@ public class MainActivity extends Activity {
                         }
                         //reset the layout
                         setContentView(R.layout.activity_main);
-                        ((TextView) findViewById(R.id.txt_price)).setText("Total: " + price + "\u20AC");
+                        ((TextView) findViewById(R.id.txt_price)).setText("Total: "+price + "\u20AC");
                         btn_start = (Button)findViewById(R.id.button);
                         btn_start.setOnClickListener(new View.OnClickListener() {
                             @Override

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="15dp">
+    android:layout_alignParentTop="true"
+    android:layout_centerHorizontal="true">
 
     <TextView
         android:layout_width="wrap_content"
@@ -13,31 +15,94 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:singleLine="false"
-        android:textSize="30dp" />
+        android:textSize="50dp"
+        android:layout_gravity="center_horizontal"
+        android:textStyle="bold|italic"
+        android:textColor="#3f5185"
+        android:layout_marginTop="25dp"
+        android:gravity="center"
+        android:layout_marginBottom="5dp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:id="@+id/txt_price"
-        android:layout_below="@+id/textView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="64dp"
-        android:textSize="25dp" />
+        android:text="Click &quot;CONNECT&quot; button, then click Flic when green circle appears"
+        android:id="@+id/textView4"
+        android:textColor="#006400"
+        android:textSize="25dp"
+        android:typeface="serif"
+        android:textStyle="italic"
+        android:layout_gravity="center"
+        android:autoText="false"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Submit"
-        android:id="@+id/button_submit"
-        android:layout_below="@+id/circle"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="42dp" />
 
-    <ImageView
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:id="@+id/circle"
-        android:layout_centerVertical="true"
-        android:layout_alignEnd="@+id/button_submit" />
-</RelativeLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:weightSum="1">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_weight="0.5"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:layout_marginRight="2dp"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:id="@+id/txt_price"
+                android:layout_below="@+id/textView"
+                android:layout_centerHorizontal="true"
+                android:textSize="45dp"
+                android:typeface="serif"
+                android:textStyle="bold|italic"
+                android:textColor="#3f5185"
+                android:layout_marginBottom="10dp" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CONNECT"
+                android:id="@+id/button_submit"
+                android:textColor="#FFFFFF"
+                android:textSize="30sp"
+                android:background="@drawable/send_button"
+                android:shadowColor="#A8A8A8"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="5"
+                android:layout_marginBottom="20dp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_weight="0.5"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:layout_gravity="center|top"
+            android:layout_marginLeft="2dp">
+
+            <ImageView
+                android:layout_width="130dp"
+                android:layout_height="130dp"
+                android:id="@+id/circle"
+                android:layout_centerVertical="true"
+                android:layout_alignEnd="@+id/button_submit"
+                android:layout_marginBottom="30dp" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

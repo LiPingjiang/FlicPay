@@ -243,21 +243,25 @@
         android:layout_height="wrap_content"
         android:layout_above="@id/pass_nums"
         android:layout_centerHorizontal="true"
-        android:layout_margin="15dp">
+        android:layout_margin="10dp">
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="80sp"
+            android:textSize="60dp"
             android:gravity="center"
             android:layout_gravity="center"
-            android:textAlignment="center"/>
+            android:textAlignment="center"
+            android:textIsSelectable="false" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="80sp"
+            android:textSize="70dp"
             android:gravity="center"
             android:layout_gravity="center"
-            android:textAlignment="center"/>
+            android:textAlignment="center"
+            android:textIsSelectable="false" />
     </TextSwitcher>
 
     <TextView
@@ -268,5 +272,22 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="64dp"
-        android:textSize="25dp" />
+        android:textSize="35dp"
+        android:textColor="#3f5185"
+        android:typeface="serif"
+        android:textStyle="bold|italic"
+        android:textIsSelectable="false" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Input Pin Code"
+        android:id="@+id/textView5"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:textColor="#3f5185"
+        android:textStyle="bold"
+        android:typeface="normal"
+        android:textSize="40dp" />
 </RelativeLayout>

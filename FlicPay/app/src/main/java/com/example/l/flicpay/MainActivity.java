@@ -122,19 +122,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.layout_start);
-
-        Handler hd=new Handler();
-        Runnable rb=new Runnable(){
-            @Override
-            public void run() {
-                initializeSecondView();
-            }
-        };
-        hd.postDelayed(rb, 3500);
-
-
-
+        initializeFirstView();
 
     }
 
@@ -181,7 +169,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        FlicManager.destroyInstance();
+//        FlicManager.destroyInstance();
         super.onDestroy();
     }
     private void startPairing(){
@@ -306,13 +294,25 @@ public class MainActivity extends Activity {
             }
         }
     }
+    private void initializeFirstView(){
+        setContentView(R.layout.layout_start);
+
+        Handler hd=new Handler();
+        Runnable rb=new Runnable(){
+            @Override
+            public void run() {
+                initializeSecondView();
+            }
+        };
+        hd.postDelayed(rb, 3500);
+    }
     private void initializeSecondView(){
         recording = false;
         c_counter = -1;
         setContentView(R.layout.activity_pair);
         Random random = new Random();
         price = ((double)random.nextInt(9999))/100;
-        ((TextView) findViewById(R.id.txt_price)).setText("Total:"+price+"\u20AC");
+        ((TextView) findViewById(R.id.txt_price)).setText(String.format( "Total: %.2f \u20AC", price ));
         /**/
         btn_submit = (Button)findViewById(R.id.button_submit);
         btn_submit.setOnClickListener(new View.OnClickListener() {
@@ -345,7 +345,7 @@ public class MainActivity extends Activity {
     private void initializeThirdView(){
         //reset the layout
         setContentView(R.layout.activity_main);
-        ((TextView) findViewById(R.id.txt_price)).setText("Total: " + price + "\u20AC");
+        ((TextView) findViewById(R.id.txt_price)).setText(String.format( "Total: %.2f \u20AC", price ));
 
 //        btn_start = (Button)findViewById(R.id.button);
 //        btn_start.setOnClickListener(new View.OnClickListener() {
@@ -533,6 +533,7 @@ public class MainActivity extends Activity {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 Toast.makeText(getApplicationContext(), "Transaction succeeded",Toast.LENGTH_SHORT).show();
+                initializeFirstView();
             }
 
             @Override

@@ -235,7 +235,8 @@
         android:layout_height="wrap_content"
         android:text="Start"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible" />
 
     <TextSwitcher
         android:id="@+id/counter"

@@ -121,40 +121,20 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        recording = false;
-        c_counter = -1;
-        setContentView(R.layout.activity_pair);
-        Random random = new Random();
-        price = ((double)random.nextInt(9999))/100;
-        ((TextView) findViewById(R.id.txt_price)).setText("Total:"+price+"\u20AC");
-        /**/
-        btn_submit = (Button)findViewById(R.id.button_submit);
-        btn_submit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //btn_submit.setVisibility(View.GONE);//hide
-                btn_submit.setText("Connecting...");
-                startPairing();
-            }
-        });
-        circle = (ImageView) findViewById(R.id.circle);
-        circle.setVisibility(View.GONE);    //disappear
 
-        FlicManager.setAppCredentials("[appId]", "[appSecret]", "FlicPay");
+        setContentView(R.layout.layout_start);
 
-        FlicManager.getInstance(this, new FlicManagerInitializedCallback() {
+        Handler hd=new Handler();
+        Runnable rb=new Runnable(){
             @Override
-            public void onInitialized(FlicManager manager) {
-                MainActivity.this.manager = manager;
-                buttons = manager.getKnownButtons();
-                buttons_rssi = new HashMap<String, Integer>();
-                buttons_inputs = new HashMap<String, String>();
-                for (FlicButton button : buttons) {
-                    setButtonCallback(button);
-                }
-//                manager.initiateGrabButton(MainActivity.this);// this refers to the current Activity.
+            public void run() {
+                initializeSecondView();
             }
-        });
+        };
+        hd.postDelayed(rb, 3500);
+
+
+
 
     }
 
@@ -288,7 +268,7 @@ public class MainActivity extends Activity {
         {
             connectedButtonMac = buttons_macs.get(0);
             pairing = false;
-            initializeSecondView();
+            initializeThirdView();
         }
         else if(but_counter == 0)
         {
@@ -322,23 +302,59 @@ public class MainActivity extends Activity {
             {
                 connectedButtonMac = theAddress;
                 pairing = false;
-                initializeSecondView();
+                initializeThirdView();
             }
         }
     }
-
     private void initializeSecondView(){
+        recording = false;
+        c_counter = -1;
+        setContentView(R.layout.activity_pair);
+        Random random = new Random();
+        price = ((double)random.nextInt(9999))/100;
+        ((TextView) findViewById(R.id.txt_price)).setText("Total:"+price+"\u20AC");
+        /**/
+        btn_submit = (Button)findViewById(R.id.button_submit);
+        btn_submit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //btn_submit.setVisibility(View.GONE);//hide
+                btn_submit.setText("Connecting...");
+                startPairing();
+            }
+        });
+        circle = (ImageView) findViewById(R.id.circle);
+        circle.setVisibility(View.GONE);    //disappear
+
+        FlicManager.setAppCredentials("[appId]", "[appSecret]", "FlicPay");
+
+        FlicManager.getInstance(this, new FlicManagerInitializedCallback() {
+            @Override
+            public void onInitialized(FlicManager manager) {
+                MainActivity.this.manager = manager;
+                buttons = manager.getKnownButtons();
+                buttons_rssi = new HashMap<String, Integer>();
+                buttons_inputs = new HashMap<String, String>();
+                for (FlicButton button : buttons) {
+                    setButtonCallback(button);
+                }
+//                manager.initiateGrabButton(MainActivity.this);// this refers to the current Activity.
+            }
+        });
+    }
+    private void initializeThirdView(){
         //reset the layout
         setContentView(R.layout.activity_main);
         ((TextView) findViewById(R.id.txt_price)).setText("Total: " + price + "\u20AC");
-        btn_start = (Button)findViewById(R.id.button);
-        btn_start.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                btn_start.setEnabled(false);
-                startAnimation();
-            }
-        });
+
+//        btn_start = (Button)findViewById(R.id.button);
+//        btn_start.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                btn_start.setEnabled(false);
+//                startAnimation();
+//            }
+//        });
 
         counter = 3;
         background = (ImageView) findViewById(R.id.img_background);
@@ -346,6 +362,19 @@ public class MainActivity extends Activity {
         txt_counter = (TextSwitcher) findViewById(R.id.counter);
         txt_counter.setInAnimation(MainActivity.this, R.anim.fade_in);
         txt_counter.setOutAnimation(MainActivity.this, R.anim.fade_out);
+        new Handler().post(new Runnable() {
+            @Override
+            public void run() {
+                while (pass_nums.getWidth() == 0) {
+                    try {
+                        Thread.currentThread().sleep(100);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+                startAnimation();
+            }
+        });
     }
 
     private void startAnimation()
@@ -362,7 +391,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                btn_start.setEnabled(true);
+//                btn_start.setEnabled(true);
             }
 
             @Override
@@ -511,6 +540,7 @@ public class MainActivity extends Activity {
                 Log.d("values",headers.toString());
                 Log.d("values",new String(responseBody));
                 Toast.makeText(getApplicationContext(), "Transaction failed",Toast.LENGTH_SHORT).show();
+                initializeSecondView();
             }
         });
     }
